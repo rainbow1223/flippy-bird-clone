@@ -8,11 +8,10 @@ const pipeHorizontalDistanceRange = [350, 500];
 class PlayerScene extends Phaser.Scene {
   constructor(config) {
     super("Play Scene");
-    
+
     this.bird = null;
     this.pipes = null;
     this.config = config;
-    
   }
 
   preload() {
@@ -22,42 +21,66 @@ class PlayerScene extends Phaser.Scene {
   }
 
   create() {
+    this.createBG();
+    this.createBird();
+    this.createPipes();
+    this.createColliders();
+    this.handleInputs();
+  }
+
+  update() {
+    this.checkGameStatus();
+    this.recyclePipes();
+  }
+  checkGameStatus() {
+    if (this.bird.getBounds().bottom >= this.config.height || this.bird.getBounds().top <= 0) {
+        this.gameOver();
+      }
+  }
+  createBG() {
     this.add.image(0, 0, "sky").setOrigin(0, 0);
-    // this.load.image("pipe", "assets/pipe.png");
-    // this.add.image(0, 0, 'pipe').setOrigin(0, 0)
-    // 1/10 width, in the half height bird
+  }
+  createBird() {
     this.bird = this.physics.add.sprite(
       this.config.startPosition.x,
       this.config.startPosition.y,
       "bird"
     );
-    this.input.on("pointerdown", this.flap, this);
     this.bird.body.gravity.y = 400;
+    this.bird.body.setCollideWorldBounds(true);
+  }
 
+  createPipes() {
     this.pipes = this.physics.add.group();
     for (let i = 0; i < PIPE_NUMBER; i++) {
-      let upperPipe = this.pipes.create(0, 0, "pipe").setOrigin(0, 1);
-      let lowerPipe = this.pipes.create(0, 0, "pipe").setOrigin(0, 0);
+      let upperPipe = this.pipes.create(0, 0, "pipe").setImmovable(true).setOrigin(0, 1);
+      let lowerPipe = this.pipes.create(0, 0, "pipe").setImmovable(true).setOrigin(0, 0);
 
       this.placePipe(upperPipe, lowerPipe);
     }
     this.pipes.setVelocityX(-200);
   }
 
-  update() {
-    if (
-      this.bird.y >= this.config.height ||
-      this.bird.y < -this.bird.body.height
-    ) {
-      this.resetBirdPosition();
-    }
-    this.recyclePipes();
+  createColliders(){
+    this.physics.add.collider(this.bird, this.pipes, this.gameOver, null, this)
   }
 
-  resetBirdPosition() {
-    this.bird.x = this.config.startPosition.x;
-    this.bird.y = this.config.startPosition.y;
-    this.bird.body.velocity.y = 0;
+  handleInputs() {
+    this.input.on("pointerdown", this.flap, this);
+  }
+
+  gameOver() {
+    this.physics.pause();
+    this.bird.setTint(0xE48866)
+    // this.bird.x = this.config.startPosition.x;
+    // this.bird.y = this.config.startPosition.y;
+    // this.bird.body.velocity.y = 0;
+    this.time.addEvent({
+        delay: 1000,
+        callback: () => {
+            this.scene.restart();
+        }
+    })
   }
   flap() {
     // console.log("space event happpend")
